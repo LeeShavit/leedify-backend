@@ -91,7 +91,24 @@ async function addStationLike(stationId, user) {
 async function addSong(stationId, song) {
   try {
     const collection = await dbService.getCollection('station')
-    await collection.updateOne({ _id: ObjectId.createFromHexString(stationId) }, { $push: { songs: song } })
+    const songToAdd = {
+      _id: song._id,
+      title: song.title,
+      artists: song.artists.map((artist) => ({
+        name: artist.name,
+        _id: artist._id,
+      })),
+      album: {
+        name: song.album.name,
+        _id: song.album._id,
+      },
+      duration: song.duration,
+      imgUrl: song.imgUrl,
+      addedAt: Date.now(),
+      youtubeId: song.youtubeId || '',
+    }
+
+    await collection.updateOne({ _id: ObjectId.createFromHexString(stationId) }, { $push: { songs: songToAdd } })
     return getById(stationId)
   } catch (err) {
     logger.error(`cannot add song to station ${stationId}`, err)
@@ -102,7 +119,7 @@ async function addSong(stationId, song) {
 async function removeSong(stationId, songId) {
   try {
     const collection = await dbService.getCollection('station')
-    await collection.updateOne({ _id: ObjectId.createFromHexString(stationId) }, { $pull: { songs: { id: songId } } })
+    await collection.updateOne({ _id: ObjectId.createFromHexString(stationId) }, { $pull: { songs: { _id: songId } } })
     return getById(stationId)
   } catch (err) {
     logger.error(`cannot remove song from station ${stationId}`, err)

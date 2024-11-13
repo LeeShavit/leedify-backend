@@ -108,12 +108,18 @@ async function addLikedSong(userId, song) {
     const songToAdd = {
       _id: song._id,
       name: song.name,
-      artists: song.artists,
-      album: song.album,
+      artists: song.artists.map((artist) => ({
+        name: artist.name,
+        _id: artist._id,
+      })),
+      album: {
+        name: song.album.name,
+        _id: song.album._id,
+      },
       duration: song.duration,
       imgUrl: song.imgUrl,
       addedAt: Date.now(),
-      youtubeId: '',
+      youtubeId: song.youtubeId || '',
     }
 
     await collection.updateOne({ _id: ObjectId.createFromHexString(userId) }, { $push: { likedSongs: songToAdd } })
@@ -124,7 +130,6 @@ async function addLikedSong(userId, song) {
     throw err
   }
 }
-
 async function removeLikedSong(userId, songId) {
   try {
     const collection = await dbService.getCollection('user')
