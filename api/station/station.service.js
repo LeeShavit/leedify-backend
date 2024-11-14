@@ -1,6 +1,8 @@
 import { dbService } from '../../services/db.service.js'
 import { logger } from '../../services/logger.service.js'
 import { ObjectId } from 'mongodb'
+import { userService } from '../user/user.service.js'
+import { asyncLocalStorage } from '../../services/als.service.js'
 
 export const stationService = {
   query,
@@ -14,6 +16,7 @@ export const stationService = {
 }
 
 async function query(filterBy = {}) {
+
   try {
     const criteria = _buildCriteria(filterBy)
     const collection = await dbService.getCollection('station')
@@ -26,10 +29,15 @@ async function query(filterBy = {}) {
 }
 
 async function getById(stationId) {
+
   try {
-    const collection = await dbService.getCollection('station')
-    const station = await collection.findOne({ _id: ObjectId.createFromHexString(stationId) })
-    return station
+    if (stationId === 'liked-songs') {
+      return await _getLikedSongsStation()
+    } else {
+      const collection = await dbService.getCollection('station')
+      const station = await collection.findOne({ _id: ObjectId.createFromHexString(stationId) })
+      return station
+    }
   } catch (err) {
     logger.error(`while finding station ${stationId}`, err)
     throw err
@@ -37,6 +45,14 @@ async function getById(stationId) {
 }
 
 async function add(station) {
+
+  const { loggedinUser } = asyncLocalStorage.getStore()
+  if (!loggedinUser)
+    station.createdBy = {
+      _id: loggedinUser._id,
+      name: loggedinUser.name,
+      imgUrl: loggedinUser.imgUrl,
+    }
   try {
     const collection = await dbService.getCollection('station')
     await collection.insertOne(station)
@@ -48,6 +64,8 @@ async function add(station) {
 }
 
 async function update(station) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const stationToSave = {
       name: station.name,
@@ -57,7 +75,11 @@ async function update(station) {
       songs: station.songs,
     }
     const collection = await dbService.getCollection('station')
-    await collection.updateOne({ _id: ObjectId.createFromHexString(station._id) }, { $set: stationToSave })
+    await collection.updateOne({
+      _id: ObjectId.createFromHexString(station._id),
+      'createdBy._id': loggedinUser._id
+    }, { $set: stationToSave })
+
     return station
   } catch (err) {
     logger.error(`cannot update station ${station._id}`, err)
@@ -66,22 +88,34 @@ async function update(station) {
 }
 
 async function remove(stationId) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const collection = await dbService.getCollection('station')
-    await collection.deleteOne({ _id: ObjectId.createFromHexString(stationId) })
+
+    await collection.deleteOne({
+      _id: ObjectId.createFromHexString(stationId),
+      'createdBy._id': loggedinUser._id
+    })
   } catch (err) {
     logger.error(`cannot remove station ${stationId}`, err)
     throw err
   }
 }
 
-async function addStationLike(stationId, user) {
+async function addStationLike(stationId) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const collection = await dbService.getCollection('station')
-    await collection.updateOne(
-      { _id: ObjectId.createFromHexString(stationId) },
-      { $addToSet: { likedByUsers: { _id: user._id, name: user.name } } }
-    )
+    const criteria = {
+      _id: ObjectId.createFromHexString(stationId),
+      $addToSet: {
+        likedByUsers:
+          { _id: loggedinUser._id, name: loggedinUser.name }
+      }
+    }
+    await collection.updateOne(criteria)
   } catch (err) {
     logger.error(`cannot add station like ${stationId}`, err)
     throw err
@@ -89,6 +123,7 @@ async function addStationLike(stationId, user) {
 }
 
 async function addSong(stationId, song) {
+
   try {
     const collection = await dbService.getCollection('station')
     const songToAdd = {
@@ -108,7 +143,10 @@ async function addSong(stationId, song) {
       youtubeId: song.youtubeId || '',
     }
 
-    await collection.updateOne({ _id: ObjectId.createFromHexString(stationId) }, { $push: { songs: songToAdd } })
+    await collection.updateOne({
+      _id: ObjectId.createFromHexString(station._id),
+      'createdBy._id': loggedinUser._id
+    }, { $push: { songs: songToAdd } })
     return getById(stationId)
   } catch (err) {
     logger.error(`cannot add song to station ${stationId}`, err)
@@ -117,9 +155,14 @@ async function addSong(stationId, song) {
 }
 
 async function removeSong(stationId, songId) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const collection = await dbService.getCollection('station')
-    await collection.updateOne({ _id: ObjectId.createFromHexString(stationId) }, { $pull: { songs: { _id: songId } } })
+    await collection.updateOne({
+      _id: ObjectId.createFromHexString(station._id),
+      'createdBy._id': loggedinUser._id
+    }, { $pull: { songs: { _id: songId } } })
     return getById(stationId)
   } catch (err) {
     logger.error(`cannot remove song from station ${stationId}`, err)
@@ -135,9 +178,26 @@ function _buildCriteria(filterBy) {
     criteria.$or = [{ name: txtCriteria }, { description: txtCriteria }]
   }
 
-  if (filterBy.genre) {
-    criteria.genres = { $in: [filterBy.genre] }
+  if (filterBy.createdById) {
+    criteria['createdBy._id'] = filterBy.createdById
   }
 
   return criteria
+}
+
+async function _getLikedSongsStation(){
+  try {
+    const { loggedinUser } = asyncLocalStorage.getStore()
+    const user = await userService.getById(loggedinUser._id)
+    return {
+      _id: 'liked-songs',
+      name: 'Liked Songs',
+      description: '',
+      imgUrl: 'https://misc.scdn.co/liked-songs/liked-songs-300.png',
+      createdBy: { name: user.name, _id: user._id ,imgUrl: user.imgUrl},
+      songs: [...user.likedSongs].sort((a, b) => a.AddedAt - b.AddedAt),
+    }
+  } catch (err) {
+    console.log('station service- failed to get liked songs')
+  }
 }

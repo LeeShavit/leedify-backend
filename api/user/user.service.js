@@ -1,3 +1,4 @@
+import { asyncLocalStorage } from '../../services/als.service.js'
 import { dbService } from '../../services/db.service.js'
 import { logger } from '../../services/logger.service.js'
 import { ObjectId } from 'mongodb'
@@ -102,7 +103,9 @@ async function add(user) {
   }
 }
 
-async function addLikedSong(userId, song) {
+async function addLikedSong(song) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const collection = await dbService.getCollection('user')
     const songToAdd = {
@@ -122,30 +125,33 @@ async function addLikedSong(userId, song) {
       youtubeId: song.youtubeId || '',
     }
 
-    await collection.updateOne({ _id: ObjectId.createFromHexString(userId) }, { $push: { likedSongs: songToAdd } })
-
-    return getById(userId)
+    await collection.updateOne({ _id: ObjectId.createFromHexString(loggedinUser) }, { $push: { likedSongs: songToAdd } })
+    return getById(loggedinUser)
   } catch (err) {
     logger.error(`cannot add liked song to user ${userId}`, err)
     throw err
   }
 }
-async function removeLikedSong(userId, songId) {
+async function removeLikedSong(songId) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const collection = await dbService.getCollection('user')
     await collection.updateOne(
-      { _id: ObjectId.createFromHexString(userId) },
+      { _id: ObjectId.createFromHexString(loggedinUser._id) },
       { $pull: { likedSongs: { _id: songId } } }
     )
 
-    return getById(userId)
+    return getById(loggedinUser._id)
   } catch (err) {
-    logger.error(`cannot remove liked song from user ${userId}`, err)
+    logger.error(`cannot remove liked song from user ${loggedinUser._id}`, err)
     throw err
   }
 }
 
-async function addLikedStation(userId, station) {
+async function addLikedStation(station) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const collection = await dbService.getCollection('user')
     const stationToAdd = {
@@ -153,30 +159,33 @@ async function addLikedStation(userId, station) {
       name: station.name,
       imgUrl: station.imgUrl,
       createdBy: station.createdBy,
-      songCount: station.songs.length,
       addedAt: Date.now(),
     }
 
     await collection.updateOne(
-      { _id: ObjectId.createFromHexString(userId) },
+      { _id: ObjectId.createFromHexString(loggedinUser._id) },
       { $push: { likedStations: stationToAdd } }
     )
-    return stationToAdd
+    return getById(loggedinUser._id)
   } catch (err) {
-    logger.error(`cannot add liked station to user ${userId}`, err)
+    logger.error(`cannot add liked station to user ${loggedinUser._id}`, err)
     throw err
   }
 }
 
-async function removeLikedStation(userId, stationId) {
+async function removeLikedStation(stationId) {
+
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
   try {
     const collection = await dbService.getCollection('user')
     await collection.updateOne(
-      { _id: ObjectId.createFromHexString(userId) },
+      { _id: ObjectId.createFromHexString(loggedinUser._id) },
       { $pull: { likedStations: { _id: stationId } } }
     )
+    return getById(loggedinUser._id)
   } catch (err) {
-    logger.error(`cannot remove liked station from user ${userId}`, err)
+    logger.error(`cannot remove liked station from user ${loggedinUser._id}`, err)
     throw err
   }
 }

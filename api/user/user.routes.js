@@ -2,7 +2,7 @@ import express from 'express'
 
 import { requireAuth, requireAdmin } from '../../middlewares/requireAuth.middleware.js'
 
-import { getUser, getUsers, deleteUser, updateUser, addLikedSong, removeLikedSong } from './user.controller.js'
+import { getUser, getUsers, deleteUser, updateUser, addLikedSong, removeLikedSong, addLikedStation, removeLikedStation} from './user.controller.js'
 
 const router = express.Router()
 
@@ -11,9 +11,11 @@ router.get('/:id', getUser)
 router.put('/:id', requireAuth, updateUser)
 router.delete('/:id', requireAuth, requireAdmin, deleteUser)
 
-//new wndpoint for likes
+//new endpoint for likes
 
-router.post('/:id/song', requireAuth, addLikedSong)
-router.delete('/:id/song/:songId', requireAuth, removeLikedSong)
+router.post('/song', requireAuth, addLikedSong)
+router.delete('/song/:songId', requireAuth, removeLikedSong)
+router.post('/station', requireAuth, addLikedStation)
+router.delete('/station/:stationId', requireAuth, removeLikedStation)
 
 export const userRoutes = router

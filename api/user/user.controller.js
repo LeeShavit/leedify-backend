@@ -1,6 +1,7 @@
 import { userService } from './user.service.js'
 import { logger } from '../../services/logger.service.js'
 import { socketService } from '../../services/socket.service.js'
+import { asyncLocalStorage } from '../../services/als.service.js'
 
 export async function getUser(req, res) {
   try {
@@ -48,16 +49,15 @@ export async function updateUser(req, res) {
 }
 
 export async function addLikedSong(req, res) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
+  if (!loggedinUser) {
+    return res.status(403).send({ err: 'Not authorized' })
+  }
+
   try {
-    const { loggedinUser } = req
-    const userId = req.params.id
     const song = req.body
-
-    if (loggedinUser._id !== userId) {
-      return res.status(403).send({ err: 'Not authorized' })
-    }
-
-    const updatedUser = await userService.addLikedSong(userId, song)
+    const updatedUser = await userService.addLikedSong(song)
     res.json(updatedUser)
   } catch (err) {
     logger.error('Failed to add liked song', err)
@@ -66,19 +66,52 @@ export async function addLikedSong(req, res) {
 }
 
 export async function removeLikedSong(req, res) {
+
+  const { loggedinUser } = asyncLocalStorage.getStore()
+  if (!loggedinUser) {
+    return res.status(403).send({ err: 'Not authorized' })
+  }
+  const songId = req.params.songId
   try {
-    const { loggedinUser } = req
-    const userId = req.params.id
-    const songId = req.params.songId
-
-    if (loggedinUser._id !== userId) {
-      return res.status(403).send({ err: 'Not authorized' })
-    }
-
-    const updatedUser = await userService.removeLikedSong(userId, songId)
+    const updatedUser = await userService.removeLikedSong(songId)
     res.json(updatedUser)
   } catch (err) {
     logger.error('Failed to remove liked song', err)
     res.status(400).send({ err: 'Failed to remove liked song' })
+  }
+}
+
+
+
+export async function addLikedStation(req, res) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
+  if (!loggedinUser) {
+    return res.status(403).send({ err: 'Not authorized' })
+  }
+  try {
+    const station = req.body
+    const updatedUser = await userService.addLikedStation(station)
+    res.json(updatedUser)
+  } catch (err) {
+    logger.error('Failed to add liked song', err)
+    res.status(400).send({ err: 'Failed to add liked song' })
+  }
+}
+
+export async function removeLikedStation(req, res) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
+  if (!loggedinUser) {
+    return res.status(403).send({ err: 'Not authorized' })
+  }
+
+  const stationId = req.params.stationId
+  try {
+    const updatedUser = await userService.removeLikedStation(stationId)
+    res.json(updatedUser)
+  } catch (err) {
+    logger.error('Failed to add liked song', err)
+    res.status(400).send({ err: 'Failed to add liked song' })
   }
 }

@@ -28,16 +28,9 @@ export async function getStationById(req, res) {
 }
 
 export async function addStation(req, res) {
-  const { loggedinUser } = req
 
   try {
     const station = req.body
-    station.createdBy = {
-      _id: loggedinUser._id,
-      name: loggedinUser.name,
-      imgUrl: loggedinUser.imgUrl,
-    }
-
     const addedStation = await stationService.add(station)
     res.json(addedStation)
   } catch (err) {
@@ -69,11 +62,10 @@ export async function removeStation(req, res) {
 }
 
 export async function likeStation(req, res) {
-  const { loggedinUser } = req
   const stationId = req.params.id
 
   try {
-    await stationService.addStationLike(stationId, loggedinUser)
+    await stationService.addStationLike(stationId)
     res.send({ msg: 'Station liked successfully' })
   } catch (err) {
     logger.error('Failed to like station', err)
@@ -82,7 +74,6 @@ export async function likeStation(req, res) {
 }
 
 export async function addSong(req, res) {
-  const { loggedinUser } = req
   const stationId = req.params.id
 
   try {
