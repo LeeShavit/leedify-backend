@@ -1,4 +1,4 @@
 export default {
-  dbURL: 'mongodb://127.0.0.1:27017',
+  dbURL: 'mongodb+srv://leedor:leedor123@leedify.0sqjx.mongodb.net/?retryWrites=true&w=majority&appName=leedify',
   dbName: 'leedify',
 }
