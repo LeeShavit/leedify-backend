@@ -13,18 +13,23 @@ export const authService = {
   validateToken,
 }
 
+// login({ username: 'guest', Password:'guest123' })
+
 async function login(username, password) {
-  logger.debug(`auth.service - login with username: ${username}`)
+  try {
+    logger.debug(`auth.service - login with username: ${username}`)
+    const user = await userService.getByUsername(username)
+    if (!user) return Promise.reject('Invalid username or password')
+      
+      const match = await bcrypt.compare(password, user.password)
+      if (!match) return Promise.reject('Invalid username or password')
 
-  const user = await userService.getByUsername(username)
-  if (!user) return Promise.reject('Invalid username or password')
-
-  const match = await bcrypt.compare(password, user.password)
-  if (!match) return Promise.reject('Invalid username or password')
-
-  delete user.password
-  user._id = user._id.toString()
-  return user
+        delete user.password
+        user._id = user._id.toString()
+        return user
+  } catch (err) {
+    logger.error('Failed to Login in auth service' + err)
+  }
 }
 
 async function signup({ username, password, name }) {

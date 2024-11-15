@@ -47,7 +47,7 @@ async function getById(stationId) {
 async function add(station) {
 
   const { loggedinUser } = asyncLocalStorage.getStore()
-  if (!loggedinUser)
+
     station.createdBy = {
       _id: loggedinUser._id,
       name: loggedinUser.name,
@@ -123,12 +123,13 @@ async function addStationLike(stationId) {
 }
 
 async function addSong(stationId, song) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
 
   try {
     const collection = await dbService.getCollection('station')
     const songToAdd = {
       _id: song._id,
-      title: song.title,
+      name: song.name,
       artists: song.artists.map((artist) => ({
         name: artist.name,
         _id: artist._id,
@@ -144,9 +145,10 @@ async function addSong(stationId, song) {
     }
 
     await collection.updateOne({
-      _id: ObjectId.createFromHexString(station._id),
+      _id: ObjectId.createFromHexString(stationId),
       'createdBy._id': loggedinUser._id
     }, { $push: { songs: songToAdd } })
+
     return getById(stationId)
   } catch (err) {
     logger.error(`cannot add song to station ${stationId}`, err)

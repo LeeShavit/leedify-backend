@@ -7,6 +7,7 @@ export async function getStations(req, res) {
       txt: req.query?.txt || '',
       genre: req.query?.genre || '',
       sortBy: req.query?.sortBy || 'name',
+      createdById: req.query?.createdById || ''
     }
     const stations = await stationService.query(filterBy)
     res.json(stations)
@@ -75,7 +76,6 @@ export async function likeStation(req, res) {
 
 export async function addSong(req, res) {
   const stationId = req.params.id
-
   try {
     const song = req.body
     song.addedAt = Date.now()

@@ -34,8 +34,9 @@ async function query(filterBy = {}) {
 
 async function getById(userId) {
   try {
+
     const collection = await dbService.getCollection('user')
-    const user = await collection.findOne({ _id: ObjectId.createFromHexString(userId) })
+    const user = await collection.findOne({ _id: ObjectId.createFromHexString(userId)})
     delete user.password
     return user
   } catch (err) {
@@ -48,6 +49,7 @@ async function getByUsername(username) {
   try {
     const collection = await dbService.getCollection('user')
     const user = await collection.findOne({ username })
+
     return user
   } catch (err) {
     logger.error(`while finding user by username: ${username}`, err)
@@ -94,8 +96,10 @@ async function add(user) {
       likedStations: [],
     }
 
+
     const collection = await dbService.getCollection('user')
-    await collection.insertOne(userToAdd)
+    const res =await collection.insertOne(userToAdd)
+
     return userToAdd
   } catch (err) {
     logger.error('cannot add user', err)

@@ -7,7 +7,7 @@ export function requireAuth(req, res, next) {
 	req.loggedinUser = loggedinUser
 
 	if (config.isGuestMode && !loggedinUser) {
-		req.loggedinUser = { _id: '', name: 'Guest' }
+		req.loggedinUser = { _id: '673747e44f46d732f3578f0a', name: 'Guest User' }
 		return next()
 	}
 	if (!loggedinUser) return res.status(401).send('Not Authenticated')
