@@ -56,6 +56,7 @@ export async function addLikedSong(req, res) {
 
   try {
     const song = req.body
+    console.log(song)
     const updatedUser = await userService.addLikedSong(song)
     res.json(updatedUser)
   } catch (err) {

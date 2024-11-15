@@ -129,8 +129,8 @@ async function addLikedSong(song) {
       youtubeId: song.youtubeId || '',
     }
 
-    await collection.updateOne({ _id: ObjectId.createFromHexString(loggedinUser) }, { $push: { likedSongs: songToAdd } })
-    return getById(loggedinUser)
+    await collection.updateOne({ _id: ObjectId.createFromHexString(loggedinUser._id) }, { $push: { likedSongs: songToAdd } })
+    return getById(loggedinUser._id)
   } catch (err) {
     logger.error(`cannot add liked song to user ${userId}`, err)
     throw err

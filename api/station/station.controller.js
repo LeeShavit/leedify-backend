@@ -91,7 +91,6 @@ export async function addSong(req, res) {
 export async function removeSong(req, res) {
   const stationId = req.params.id
   const songId = req.params.songId
-
   try {
     const updatedStation = await stationService.removeSong(stationId, songId)
     res.json(updatedStation)

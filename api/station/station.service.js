@@ -162,7 +162,7 @@ async function removeSong(stationId, songId) {
   try {
     const collection = await dbService.getCollection('station')
     await collection.updateOne({
-      _id: ObjectId.createFromHexString(station._id),
+      _id: ObjectId.createFromHexString(stationId),
       'createdBy._id': loggedinUser._id
     }, { $pull: { songs: { _id: songId } } })
     return getById(stationId)
