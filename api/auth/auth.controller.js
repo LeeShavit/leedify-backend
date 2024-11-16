@@ -18,6 +18,22 @@ export async function login(req, res) {
   }
 }
 
+export async function loginGoogle(req, res) {
+  try {
+    const googleUser = req.body
+    const user = await authService.loginWithGoogle(googleUser)
+    const loginToken = authService.getLoginToken(user)
+
+    logger.info('User Google login:', user)
+
+    res.cookie('loginToken', loginToken, { sameSite: 'None', secure: true })
+    res.json(user)
+  } catch (err) {
+    logger.error('Failed to Login with Google ' + err)
+    res.status(401).send({ err: 'Failed to Login with Google' })
+  }
+}
+
 export async function signup(req, res) {
   try {
     const credentials = req.body

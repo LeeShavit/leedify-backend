@@ -9,6 +9,7 @@ const cryptr = new Cryptr(process.env.SECRET || 'Secret-Puk-1234')
 export const authService = {
   signup,
   login,
+  loginWithGoogle,
   getLoginToken,
   validateToken,
 }
@@ -20,15 +21,40 @@ async function login(username, password) {
     logger.debug(`auth.service - login with username: ${username}`)
     const user = await userService.getByUsername(username)
     if (!user) return Promise.reject('Invalid username or password')
-      
-      const match = await bcrypt.compare(password, user.password)
-      if (!match) return Promise.reject('Invalid username or password')
 
-        delete user.password
-        user._id = user._id.toString()
-        return user
+    const match = await bcrypt.compare(password, user.password)
+    if (!match) return Promise.reject('Invalid username or password')
+
+    delete user.password
+    user._id = user._id.toString()
+    return user
   } catch (err) {
     logger.error('Failed to Login in auth service' + err)
+  }
+}
+async function loginWithGoogle(googleUser) {
+  try {
+    logger.debug(`auth.service - login with Google user: ${googleUser.name}`)
+
+    let user = await userService.getByUsername(googleUser.name)
+
+    if (!user) {
+      user = await userService.add({
+        username: googleUser.email,
+        name: googleUser.name,
+        imgUrl: googleUser.imgUrl,
+        password: null,
+        likedSongs: [],
+        likedStations: [],
+      })
+    }
+
+    delete user.password
+    user._id = user._id.toString()
+    return user
+  } catch (err) {
+    logger.error('Failed to login with Google ' + err)
+    throw err
   }
 }
 
