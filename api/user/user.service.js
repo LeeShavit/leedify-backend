@@ -13,6 +13,8 @@ export const userService = {
   addLikedSong,
   removeLikedSong,
   addLikedStation,
+  getUsersStations,
+  updateLikedStation,
   removeLikedStation,
 }
 
@@ -34,7 +36,6 @@ async function query(filterBy = {}) {
 
 async function getById(userId) {
   try {
-
     const collection = await dbService.getCollection('user')
     const user = await collection.findOne({ _id: ObjectId.createFromHexString(userId)})
     delete user.password
@@ -153,13 +154,103 @@ async function removeLikedSong(songId) {
   }
 }
 
+
+async function getUsersStations() {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
+  try {
+    const collection = await dbService.getCollection('user')
+    const stations = await collection
+    .aggregate([
+      {
+        $match: { _id: ObjectId.createFromHexString(loggedinUser._id) },
+      },
+      {
+        $unwind: "$likedStations",
+      },
+      {
+        $addFields: {
+          isObjectId: { $eq: [{ $type: "$likedStations._id" }, "objectId"] }
+        }
+      },
+      {
+        $lookup: {
+          from: "station",          
+          let: { 
+            stationId: "$likedStations._id",
+            isObjectId: "$isObjectId"
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$_id", "$$stationId"] },
+                    "$$isObjectId"
+                  ]
+                }
+              }
+            }
+          ],
+          as: "stationData" 
+        }
+      },
+      {
+        $project: {
+          _id: {
+            $cond: {
+              if: { $gt: [{ $size: "$stationData" }, 0] },
+              then: { $arrayElemAt: ["$stationData._id", 0] },
+              else: "$likedStations._id"
+            }
+          },
+          name: {
+            $cond: {
+              if: { $gt: [{ $size: "$stationData" }, 0] },
+              then: { $arrayElemAt: ["$stationData.name", 0] },
+              else: "$likedStations.name"
+            }
+          },
+          imgUrl: {
+            $cond: {
+              if: { $gt: [{ $size: "$stationData" }, 0] },
+              then: { $arrayElemAt: ["$stationData.imgUrl", 0] },
+              else: "$likedStations.imgUrl"
+            }
+          },
+          createdBy: {
+            $cond: {
+              if: { $gt: [{ $size: "$stationData" }, 0] },
+              then: { $arrayElemAt: ["$stationData.createdBy", 0] },
+              else: "$likedStations.createdBy"
+            }
+          },
+          addedAt: "$likedStations.addedAt"
+        }
+      },
+      {
+        $sort: {
+          addedAt: -1
+        }
+      }
+    ])
+    .toArray()
+    console.log(stations)
+    return stations
+
+  } catch (err) {
+    logger.error(`cannot get liked station of user ${loggedinUser._id}`, err)
+    throw err
+  }
+}
+
 async function addLikedStation(station) {
   const { loggedinUser } = asyncLocalStorage.getStore()
 
   try {
     const collection = await dbService.getCollection('user')
     const stationToAdd = {
-      _id: station._id,
+      _id: x,
       name: station.name,
       imgUrl: station.imgUrl,
       createdBy: station.createdBy,
@@ -170,6 +261,42 @@ async function addLikedStation(station) {
       { _id: ObjectId.createFromHexString(loggedinUser._id) },
       { $push: { likedStations: stationToAdd } }
     )
+    return getById(loggedinUser._id)
+  } catch (err) {
+    logger.error(`cannot add liked station to user ${loggedinUser._id}`, err)
+    throw err
+  }
+}
+
+async function updateLikedStation(station) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
+  try {
+    const collection = await dbService.getCollection('user')
+    const stationToAdd = {
+      _id: station._id,
+      name: station.name,
+      imgUrl: station.imgUrl,
+      createdBy: station.createdBy,
+      addedAt: station.addedAt,
+    }
+
+    const res= await collection.updateOne(
+      { _id: ObjectId.createFromHexString(loggedinUser._id) },
+      { $set: {  "likedStations.$[station]": stationToAdd  }},
+      { arrayFilters: [{ "station._id": stationToAdd._id }]}
+    )
+
+    if (res.matchedCount === 0) {
+      throw new Error('User not found')
+    }
+    if (res.modifiedCount === 0) {
+      await collection.updateOne(
+        { _id: ObjectId.createFromHexString(loggedinUser._id) },
+        { $push: { likedStations: stationToAdd }}
+      )
+    }
+
     return getById(loggedinUser._id)
   } catch (err) {
     logger.error(`cannot add liked station to user ${loggedinUser._id}`, err)

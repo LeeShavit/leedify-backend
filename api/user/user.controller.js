@@ -83,6 +83,22 @@ export async function removeLikedSong(req, res) {
 
 
 
+export async function getUsersStations(req, res) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
+  if (!loggedinUser) {
+    return res.status(403).send({ err: 'Not authorized' })
+  }
+  try {
+    const stations = await userService.getUsersStations()
+    res.json(stations)
+
+  } catch (err) {
+    logger.error('Failed to add liked song', err)
+    res.status(400).send({ err: 'Failed to add liked song' })
+  }
+}
+
 export async function addLikedStation(req, res) {
   const { loggedinUser } = asyncLocalStorage.getStore()
 
@@ -92,6 +108,24 @@ export async function addLikedStation(req, res) {
   try {
     const station = req.body
     const updatedUser = await userService.addLikedStation(station)
+    res.json(updatedUser)
+  } catch (err) {
+    logger.error('Failed to add liked song', err)
+    res.status(400).send({ err: 'Failed to add liked song' })
+  }
+}
+
+export async function updateLikedStation(req, res) {
+  const { loggedinUser } = asyncLocalStorage.getStore()
+
+  if (!loggedinUser) {
+    return res.status(403).send({ err: 'Not authorized' })
+  }
+
+  const station = req.body
+
+  try {
+    const updatedUser = await userService.updateLikedStation(station)
     res.json(updatedUser)
   } catch (err) {
     logger.error('Failed to add liked song', err)
@@ -115,3 +149,4 @@ export async function removeLikedStation(req, res) {
     res.status(400).send({ err: 'Failed to add liked song' })
   }
 }
+
