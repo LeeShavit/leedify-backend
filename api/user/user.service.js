@@ -37,7 +37,7 @@ async function query(filterBy = {}) {
 async function getById(userId) {
   try {
     const collection = await dbService.getCollection('user')
-    const user = await collection.findOne({ _id: ObjectId.createFromHexString(userId)})
+    const user = await collection.findOne({ _id: ObjectId.createFromHexString(userId) })
     delete user.password
     return user
   } catch (err) {
@@ -99,7 +99,7 @@ async function add(user) {
 
 
     const collection = await dbService.getCollection('user')
-    const res =await collection.insertOne(userToAdd)
+    const res = await collection.insertOne(userToAdd)
 
     return userToAdd
   } catch (err) {
@@ -155,87 +155,84 @@ async function removeLikedSong(songId) {
 }
 
 
-async function getUsersStations() {
+async function getUsersStations(sortBy) {
   const { loggedinUser } = asyncLocalStorage.getStore()
-
+  const sort = (!sortBy) ? { addedAt: -1 } : _buildSort(sortBy)
   try {
     const collection = await dbService.getCollection('user')
     const stations = await collection
-    .aggregate([
-      {
-        $match: { _id: ObjectId.createFromHexString(loggedinUser._id) },
-      },
-      {
-        $unwind: "$likedStations",
-      },
-      {
-        $addFields: {
-          isObjectId: { $eq: [{ $type: "$likedStations._id" }, "objectId"] }
-        }
-      },
-      {
-        $lookup: {
-          from: "station",          
-          let: { 
-            stationId: "$likedStations._id",
-            isObjectId: "$isObjectId"
-          },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$_id", "$$stationId"] },
-                    "$$isObjectId"
-                  ]
+      .aggregate([
+        {
+          $match: { _id: ObjectId.createFromHexString(loggedinUser._id) },
+        },
+        {
+          $unwind: "$likedStations",
+        },
+        {
+          $addFields: {
+            isObjectId: { $eq: [{ $type: "$likedStations._id" }, "objectId"] }
+          }
+        },
+        {
+          $lookup: {
+            from: "station",
+            let: {
+              stationId: "$likedStations._id",
+              isObjectId: "$isObjectId"
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$_id", "$$stationId"] },
+                      "$$isObjectId"
+                    ]
+                  }
                 }
               }
-            }
-          ],
-          as: "stationData" 
+            ],
+            as: "stationData"
+          }
+        },
+        {
+          $project: {
+            _id: {
+              $cond: {
+                if: { $gt: [{ $size: "$stationData" }, 0] },
+                then: { $arrayElemAt: ["$stationData._id", 0] },
+                else: "$likedStations._id"
+              }
+            },
+            name: {
+              $cond: {
+                if: { $gt: [{ $size: "$stationData" }, 0] },
+                then: { $arrayElemAt: ["$stationData.name", 0] },
+                else: "$likedStations.name"
+              }
+            },
+            imgUrl: {
+              $cond: {
+                if: { $gt: [{ $size: "$stationData" }, 0] },
+                then: { $arrayElemAt: ["$stationData.imgUrl", 0] },
+                else: "$likedStations.imgUrl"
+              }
+            },
+            createdBy: {
+              $cond: {
+                if: { $gt: [{ $size: "$stationData" }, 0] },
+                then: { $arrayElemAt: ["$stationData.createdBy", 0] },
+                else: "$likedStations.createdBy"
+              }
+            },
+            addedAt: "$likedStations.addedAt"
+          }
+        },
+        {
+          $sort: sort
         }
-      },
-      {
-        $project: {
-          _id: {
-            $cond: {
-              if: { $gt: [{ $size: "$stationData" }, 0] },
-              then: { $arrayElemAt: ["$stationData._id", 0] },
-              else: "$likedStations._id"
-            }
-          },
-          name: {
-            $cond: {
-              if: { $gt: [{ $size: "$stationData" }, 0] },
-              then: { $arrayElemAt: ["$stationData.name", 0] },
-              else: "$likedStations.name"
-            }
-          },
-          imgUrl: {
-            $cond: {
-              if: { $gt: [{ $size: "$stationData" }, 0] },
-              then: { $arrayElemAt: ["$stationData.imgUrl", 0] },
-              else: "$likedStations.imgUrl"
-            }
-          },
-          createdBy: {
-            $cond: {
-              if: { $gt: [{ $size: "$stationData" }, 0] },
-              then: { $arrayElemAt: ["$stationData.createdBy", 0] },
-              else: "$likedStations.createdBy"
-            }
-          },
-          addedAt: "$likedStations.addedAt"
-        }
-      },
-      {
-        $sort: {
-          addedAt: -1
-        }
-      }
-    ])
-    .toArray()
-    console.log(stations)
+      ])
+      .toArray()
     return stations
 
   } catch (err) {
@@ -250,7 +247,7 @@ async function addLikedStation(station) {
   try {
     const collection = await dbService.getCollection('user')
     const stationToAdd = {
-      _id: x,
+      _id: station._id,
       name: station.name,
       imgUrl: station.imgUrl,
       createdBy: station.createdBy,
@@ -281,10 +278,10 @@ async function updateLikedStation(station) {
       addedAt: station.addedAt,
     }
 
-    const res= await collection.updateOne(
+    const res = await collection.updateOne(
       { _id: ObjectId.createFromHexString(loggedinUser._id) },
-      { $set: {  "likedStations.$[station]": stationToAdd  }},
-      { arrayFilters: [{ "station._id": stationToAdd._id }]}
+      { $set: { "likedStations.$[station]": stationToAdd } },
+      { arrayFilters: [{ "station._id": stationToAdd._id }] }
     )
 
     if (res.matchedCount === 0) {
@@ -293,7 +290,7 @@ async function updateLikedStation(station) {
     if (res.modifiedCount === 0) {
       await collection.updateOne(
         { _id: ObjectId.createFromHexString(loggedinUser._id) },
-        { $push: { likedStations: stationToAdd }}
+        { $push: { likedStations: stationToAdd } }
       )
     }
 
@@ -328,4 +325,12 @@ function _buildCriteria(filterBy) {
     criteria.$or = [{ username: txtCriteria }, { name: txtCriteria }]
   }
   return criteria
+}
+
+function _buildSort(sortBy) {
+  const sort = {}
+  if (sortBy === 'alphabetical') sort.name = -1
+  if (sortBy === 'creator') sort['createdBy.name'] = -1
+  if (sortBy === 'recently added') sort.addedAt = -1
+  return sort
 }

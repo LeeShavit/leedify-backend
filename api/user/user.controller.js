@@ -56,7 +56,6 @@ export async function addLikedSong(req, res) {
 
   try {
     const song = req.body
-    console.log(song)
     const updatedUser = await userService.addLikedSong(song)
     res.json(updatedUser)
   } catch (err) {
@@ -89,8 +88,12 @@ export async function getUsersStations(req, res) {
   if (!loggedinUser) {
     return res.status(403).send({ err: 'Not authorized' })
   }
+
+  const sortBy = req.query?.sortBy
+  console.log(req.query)
+
   try {
-    const stations = await userService.getUsersStations()
+    const stations = await userService.getUsersStations(sortBy)
     res.json(stations)
 
   } catch (err) {

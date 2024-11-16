@@ -3,6 +3,7 @@ import { logger } from '../../services/logger.service.js'
 import { ObjectId } from 'mongodb'
 import { userService } from '../user/user.service.js'
 import { asyncLocalStorage } from '../../services/als.service.js'
+import { socketService } from '../../services/socket.service.js'
 
 export const stationService = {
   query,
@@ -31,10 +32,12 @@ async function query(filterBy = {}) {
 async function getById(stationId) {
 
   try {
-    if (stationId === 'liked-songs') {
-      return await _getLikedSongsStation()
+    if (stationId === 'liked-songs') return await _getLikedSongsStation()
+    const collection = await dbService.getCollection('station')
+    if (stationId.length === 22) {
+      const station = await collection.findOne({ _id: stationId })
+      return station
     } else {
-      const collection = await dbService.getCollection('station')
       const station = await collection.findOne({ _id: ObjectId.createFromHexString(stationId) })
       return station
     }
@@ -47,12 +50,14 @@ async function getById(stationId) {
 async function add(station) {
 
   const { loggedinUser } = asyncLocalStorage.getStore()
-
+  if (!station.createdBy) {
     station.createdBy = {
       _id: loggedinUser._id,
       name: loggedinUser.name,
       imgUrl: loggedinUser.imgUrl,
     }
+  }
+
   try {
     const collection = await dbService.getCollection('station')
     await collection.insertOne(station)
@@ -80,6 +85,7 @@ async function update(station) {
       'createdBy._id': loggedinUser._id
     }, { $set: stationToSave })
 
+    socketService.emitTo({type: 'station-edit', data: station})
     return station
   } catch (err) {
     logger.error(`cannot update station ${station._id}`, err)
@@ -187,7 +193,7 @@ function _buildCriteria(filterBy) {
   return criteria
 }
 
-async function _getLikedSongsStation(){
+async function _getLikedSongsStation() {
   try {
     const { loggedinUser } = asyncLocalStorage.getStore()
     const user = await userService.getById(loggedinUser._id)
@@ -196,7 +202,7 @@ async function _getLikedSongsStation(){
       name: 'Liked Songs',
       description: '',
       imgUrl: 'https://misc.scdn.co/liked-songs/liked-songs-300.png',
-      createdBy: { name: user.name, _id: user._id ,imgUrl: user.imgUrl},
+      createdBy: { name: user.name, _id: user._id, imgUrl: user.imgUrl },
       songs: [...user.likedSongs].sort((a, b) => a.AddedAt - b.AddedAt),
     }
   } catch (err) {
