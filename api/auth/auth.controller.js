@@ -3,7 +3,7 @@ import { logger } from '../../services/logger.service.js'
 
 export async function login(req, res) {
   const { username, password } = req.body
-  console.log('we got the details!! ' ,username, password)
+  console.log('we got the details!! ', username, password)
   try {
     const user = await authService.login(username, password)
     const loginToken = authService.getLoginToken(user)
@@ -15,6 +15,22 @@ export async function login(req, res) {
   } catch (err) {
     logger.error('Failed to Login ' + err)
     res.status(401).send({ err: 'Failed to Login' })
+  }
+}
+
+export async function loginGoogle(req, res) {
+  try {
+    const googleUser = req.body
+    const user = await authService.loginWithGoogle(googleUser)
+    const loginToken = authService.getLoginToken(user)
+
+    logger.info('User Google login:', user)
+
+    res.cookie('loginToken', loginToken, { sameSite: 'None', secure: true })
+    res.json(user)
+  } catch (err) {
+    logger.error('Failed to Login with Google ' + err)
+    res.status(401).send({ err: 'Failed to Login with Google' })
   }
 }
 
