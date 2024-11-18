@@ -28,6 +28,9 @@ if (process.env.NODE_ENV === 'production') {
   app.use(cors(corsOptions))
 }
 
+console.log(process.env)
+
+
 app.all('*', setupAsyncLocalStorage)
 
 // Your route registration
