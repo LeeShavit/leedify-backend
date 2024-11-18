@@ -7,7 +7,8 @@ export async function setupAsyncLocalStorage(req, res, next) {
 	asyncLocalStorage.run(storage, () => {
 		if (!req.cookies?.loginToken) return next()
 		const loggedinUser = authService.validateToken(req.cookies.loginToken)
-
+		console.log(loggedinUser)
+		
 		if (loggedinUser) {
 			const alsStore = asyncLocalStorage.getStore()
 			alsStore.loggedinUser = loggedinUser

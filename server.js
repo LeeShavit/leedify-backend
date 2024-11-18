@@ -22,23 +22,22 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.resolve('public')))
 } else {
   const corsOptions = {
-    origin: ['http://127.0.0.1:3000', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:5173'],
-    credentials: true,
+      origin: ['http://127.0.0.1:3000', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:5173'],
+      credentials: true,
   }
   app.use(cors(corsOptions))
 }
+
 app.all('*', setupAsyncLocalStorage)
 
+// Your route registration
 app.use('/api/auth', authRoutes)
-app.use('/api/user', userRoutes)
 app.use('/api/station', stationRoutes)
+app.use('/api/user', userRoutes)
+
 
 setupSocketAPI(server)
 
-// Make every unhandled server-side-route match index.html
-// so when requesting http://localhost:3030/unhandled-route...
-// it will still serve the index.html file
-// and allow vue/react-router to take it from there
 
 app.get('/**', (req, res) => {
   res.sendFile(path.resolve('public/index.html'))

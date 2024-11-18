@@ -6,18 +6,18 @@ import { getUser, getUsers, deleteUser, updateUser, addLikedSong, removeLikedSon
 
 const router = express.Router()
 
-router.get('/', getUsers)
-router.get('/:id', getUser)
-router.put('/:id', requireAuth, updateUser)
-router.delete('/:id', requireAuth, requireAdmin, deleteUser)
-
-//new endpoint for likes
-
-router.post('/song', requireAuth, addLikedSong)
-router.delete('/song/:songId', requireAuth, removeLikedSong)
-router.get('/:id/station', requireAuth, getUsersStations)
 router.post('/station', requireAuth, addLikedStation)
 router.put('/station', requireAuth, updateLikedStation)
 router.delete('/station/:stationId', requireAuth, removeLikedStation)
+
+router.post('/song', requireAuth, addLikedSong)
+router.delete('/song/:songId', requireAuth, removeLikedSong)
+
+router.get('/', getUsers)
+router.get('/:id', getUser)
+router.put('/:id', requireAuth, updateUser)
+router.delete('/:id', requireAuth, requireAdmin, deleteUser) 
+router.get('/:id/station', requireAuth, getUsersStations)
+
 
 export const userRoutes = router

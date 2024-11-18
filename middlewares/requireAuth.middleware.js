@@ -3,6 +3,10 @@ import { logger } from '../services/logger.service.js'
 import { asyncLocalStorage } from '../services/als.service.js'
 
 export function requireAuth(req, res, next) {
+	console.log('requireAuth middleware called')
+    console.log('Request path:', req.path)
+    console.log('Request method:', req.method)
+
 	const { loggedinUser } = asyncLocalStorage.getStore()
 	req.loggedinUser = loggedinUser
 
