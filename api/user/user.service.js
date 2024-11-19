@@ -148,11 +148,10 @@ async function removeLikedSong(songId) {
 
   try {
     const collection = await dbService.getCollection('user')
-    await collection.updateOne(
+    const res= await collection.updateOne(
       { _id: ObjectId.createFromHexString(loggedinUser._id) },
       { $pull: { likedSongs: { _id: songId } } }
     )
-
     return getById(loggedinUser._id)
   } catch (err) {
     logger.error(`cannot remove liked song from user ${loggedinUser._id}`, err)
